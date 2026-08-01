@@ -35,15 +35,15 @@
   libappindicator-gtk3,
   patchelf,
   gcc,
-  version ? "unstable",
+  version ? "0.2.6",
 }:
 
 let
   src = fetchFromGitHub {
     owner = "Aromatic05";
     repo = "we-layerd";
-    rev = "7eba79da2d68d1dc9077dd463a1eb65f4aa23994";
-    hash = "sha256-pxTi34sgDr+7GgTrXVOALe9s//i3Wvrmu4XKf6Cui5I=";
+    rev = "9da371f519d1cfcf61980e1d1927f8a3bbff2742";
+    hash = "sha256-oExBFgNzQMa36OnejgyYtpTnLytyj3lTE1M+0QKgn/M=";
     fetchSubmodules = true;
   };
 in

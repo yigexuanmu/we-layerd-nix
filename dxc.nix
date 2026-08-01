@@ -6,11 +6,11 @@
 
 stdenv.mkDerivation {
   pname = "directx-shader-compiler";
-  version = "1.8.2502";
+  version = "1.9.2602.24";
 
   src = fetchurl {
-    url = "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2502/linux_dxc_2025_02_20.x86_64.tar.gz";
-    hash = "sha256-4FgNkNv2BTp4Pd2NUVMoXwYG5d6q0Xp6ZFLwOs34jHE=";
+    url = "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2602.24/linux_dxc_2026_05_26.x86_64.tar.gz";
+    hash = "sha256-kos+mYbRHcQnkFDgI0CVDCm8vR5e+5097ZZp2t43Y50=";
   };
 
   dontBuild = true;

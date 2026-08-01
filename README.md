@@ -6,8 +6,13 @@
 
 - **we-layerd** — 基于 Rust 的 Wallpaper Engine Wayland 原生运行时，支持 layer-shell
 - **we-gui** — 基于 iced 的图形界面，用于浏览创意工坊壁纸和配置生成
-- **DXC** — 微软官方 DirectX Shader 编译器（v1.8.2502），用于渲染 Wallpaper Engine 着色器
-- GStreamer 全插件、CEF 浏览器引擎、Vulkan、PipeWire 音频
+- **DXC** — 微软官方 DirectX Shader 编译器（v1.9.2602.24），用于渲染 Wallpaper Engine 着色器
+- GStreamer 全插件、CEF 浏览器引擎（151.0.7922.72）、Vulkan、PipeWire 音频
+
+> CEF 版本说明：nixpkgs 默认的 CEF 149.0.5（Chromium 149）在 NVIDIA 显卡的 OSR
+> 共享纹理模式下无法初始化 SkSurface（CEF issue #3953 / Electron issue #49247，
+> NVIDIA GBM 拒绝 `SCANOUT_CPU_READ_WRITE` backbuffer）。本 flake 固定使用
+> 151.0.7922.72（Chromium 151，含 2025-08 合并的 NVIDIA 修复 CL 6681354）。
 
 ## 安装
 
