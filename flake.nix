@@ -15,8 +15,11 @@
       # CEF 149.0.5 (Chromium 149) cannot initialize SkSurface on NVIDIA GPUs
       # in OSR shared-texture mode (CEF issue #3953 / Electron issue #49247:
       # NVIDIA GBM rejects BufferUsage::SCANOUT_CPU_READ_WRITE backbuffers).
-      # Fixed in Chromium 151 (CL 6681354, merged 2025-08-06), so pin a newer
-      # CEF with the NVIDIA fix.
+      # Chromium 151 (CEF 151.3.14) does NOT actually fix it either (CEF
+      # issue #3953 is still open); the working workaround is the
+      # WE_WEB_FORCE_SOFTWARE_PAINT renderer patch in we-layerd.nix, which
+      # forces the web backend into software painting while keeping DMA-BUF
+      # for the scene/video backends.
       cef-binary = pkgs.cef-binary.override {
         version = "151.3.14";
         gitRevision = "5d67476";

@@ -9,10 +9,40 @@
 - **DXC** — 微软官方 DirectX Shader 编译器（v1.9.2602.24），用于渲染 Wallpaper Engine 着色器
 - GStreamer 全插件、CEF 浏览器引擎（151.0.7922.72）、Vulkan、PipeWire 音频
 
-> CEF 版本说明：nixpkgs 默认的 CEF 149.0.5（Chromium 149）在 NVIDIA 显卡的 OSR
-> 共享纹理模式下无法初始化 SkSurface（CEF issue #3953 / Electron issue #49247，
-> NVIDIA GBM 拒绝 `SCANOUT_CPU_READ_WRITE` backbuffer）。本 flake 固定使用
-> 151.0.7922.72（Chromium 151，含 2025-08 合并的 NVIDIA 修复 CL 6681354）。
+> CEF 版本说明：本 flake 固定使用 CEF 151.3.14（Chromium 151.0.7922.72）。
+> NVIDIA 上存在已知限制：CEF 的 OSR 共享纹理（web 壁纸的 DMA-BUF 导出路径）
+> 在 NVIDIA GBM 后端上无法初始化 SkSurface（CEF issue #3953，Chromium 将
+> `SCANOUT_CPU_READ_WRITE` 映射为 `GBM_BO_USE_LINEAR|SCANOUT|TEXTURING`，
+> NVIDIA 不支持；Chromium 151 与 main 分支均未修复）。因此 NVIDIA 上
+> web 壁纸必须走软件绘制路径，见下文「NVIDIA 显卡」一节。
+> **注意：本 flake 不强制 NVIDIA 用户全局关闭 DMA-BUF（prefer_dmabuf=false
+> 会让 scene/video 壁纸掉到 9-13 FPS），而是只对 web 后端启用软件绘制。**
+
+## NVIDIA 显卡
+
+CEF 的 OSR 共享纹理在 NVIDIA GBM 后端上无法初始化 SkSurface（见上），
+导致 web 壁纸在 NVIDIA 上黑屏/失败。本 flake 通过补丁让 web 后端支持
+软件绘制开关：
+
+- 设置环境变量后重启 we-layerd：
+  ```bash
+  export WE_WEB_FORCE_SOFTWARE_PAINT=1
+  we-gui
+  ```
+- 仅影响 web 壁纸：scene/video 壁纸继续使用 DMA-BUF 硬件路径，不受影响。
+- 如果 web 壁纸在软件绘制下仍卡顿，可额外尝试：
+  ```bash
+  export WE_CEF_EXTRA_SWITCHES="--disable-gpu-compositing"
+  ```
+  并在 `config.toml` 中调低 `renderer.fps`（如 30）。
+
+## 系统音频采集
+
+本 flake 为 we-layerd 附加了 PipeWire 系统音频采集补丁（上游 we-layerd
+本身没有任何音频通路）：we-layerd 通过 PipeWire 监听默认输出的 monitor，
+把系统正在播放的声音以 f32 交错采样转发给渲染器，使音频响应型壁纸
+（scene/web）随音乐律动。视频后端不接受音频推送，自动跳过采集；
+非音频响应型 web 壁纸不受影响。
 
 ## 安装
 

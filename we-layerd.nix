@@ -35,6 +35,8 @@
   libappindicator-gtk3,
   patchelf,
   gcc,
+  libclang,
+  glibc,
   version ? "0.2.6",
 }:
 
@@ -51,7 +53,7 @@ rustPlatform.buildRustPackage {
   pname = "we-layerd";
   inherit version src;
 
-  cargoLock.lockFile = "${src}/Cargo.lock";
+  cargoLock.lockFile = ./we-layerd-audio.lock;
 
   cargoBuildFlags = ["--workspace"];
 
@@ -62,6 +64,7 @@ rustPlatform.buildRustPackage {
     git
     wayland-scanner
     patchelf
+    libclang
   ];
 
   buildInputs = [
@@ -92,12 +95,23 @@ rustPlatform.buildRustPackage {
     alsa-lib
     pulseaudio
     pipewire
+    pipewire.dev
     openssl
     xdotool
     libappindicator-gtk3
   ];
 
   postPatch = ''
+    # Replace the upstream Cargo.lock with ours: the generated lockfile adds
+    # pipewire and bumps a few transitive deps, and nixpkgs'
+    # cargoSetupPostPatchHook requires source Cargo.lock == vendored lock.
+    cp ${./we-layerd-audio.lock} Cargo.lock
+    # System audio capture for audio-reactive wallpapers: we-layerd has no
+    # audio pipeline at all upstream, so add a PipeWire capture thread that
+    # forwards interleaved f32 samples to the renderer via
+    # we_session_push_audio_samples (scene + web backends react; the video
+    # backend rejects pushes).
+    git apply ${./we-layerd-audio.patch}
     sed -i '/fn ensure_recursive_submodules/,/^}/c\fn ensure_recursive_submodules(_upstream_root: \&Path) {}\n' build.rs
     sed -i '/target_include_directories(we-cef-helper/a\        ''${_CEF_ROOT}' third_party/wallpaper-engine-renderer/src/backend/web/CMakeLists.txt
     # Patch OnBeforeCommandLineProcessing to apply GL/GPU switches to ALL
@@ -108,12 +122,21 @@ rustPlatform.buildRustPackage {
     sed -i 's|// Only tweak the browser process command line. Renderer / utility|// Apply GL/GPU switches to ALL processes (browser + renderer + GPU).|' third_party/wallpaper-engine-renderer/src/backend/web/internal/cef/helper/AppHandler.cpp
     sed -i '/helpers inherit the relevant switches from the browser anyway\./d' third_party/wallpaper-engine-renderer/src/backend/web/internal/cef/helper/AppHandler.cpp
     sed -i '/if (! process_type.empty()) return;/d' third_party/wallpaper-engine-renderer/src/backend/web/internal/cef/helper/AppHandler.cpp
+    # NVIDIA: CEF shared textures (the web backend's DMA-BUF export path) fail
+    # to initialize SkSurface on the NVIDIA GBM backend (CEF issue #3953,
+    # unfixed in Chromium 151 and main). Force software paint for the web
+    # backend only via WE_WEB_FORCE_SOFTWARE_PAINT=1, keeping DMA-BUF for the
+    # scene/video backends. Both reset sites of m_forceSoftwarePaint in load()
+    # and start() read the env var instead of hardcoding false.
+    sed -i 's|m_forceSoftwarePaint[[:space:]]*=[[:space:]]*false;|m_forceSoftwarePaint = std::getenv("WE_WEB_FORCE_SOFTWARE_PAINT") != nullptr;|g' third_party/wallpaper-engine-renderer/src/backend/web/internal/WebBackend.cpp
   '';
 
   preConfigure = ''
     export CMAKE_MODULE_PATH="${cef-binary}/cmake:$CMAKE_MODULE_PATH"
     export CEF_ROOT="${cef-binary}"
     export HANABI_DXC_ROOT="${dxc}"
+    export LIBCLANG_PATH="${libclang.lib}/lib"
+    export C_INCLUDE_PATH="${glibc.dev}/include"
     export NIX_CFLAGS_COMPILE="''${NIX_CFLAGS_COMPILE:-} -I${libdrm.dev}/include/libdrm"
   '';
 
