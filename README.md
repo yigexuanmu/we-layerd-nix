@@ -1,4 +1,4 @@
-# we-layerd-flake
+# we-layerd-nix
 
 [we-layerd](https://github.com/Aromatic05/we-layerd) 的 Nix Flake 打包，包含 [DirectX Shader Compiler](https://github.com/microsoft/DirectXShaderCompiler) (DXC)。
 
